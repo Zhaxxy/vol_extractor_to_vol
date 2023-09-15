@@ -8,7 +8,7 @@ def extract_vol(vol_file: bytes) -> bytes:
     if not vol_file.startswith(VOL_HEADER):
         raise ValueError('Invalid .vol file')
 
-    compressed_data_size, decompressed_data_size = struct.unpack('<2i',vol_file[8: 8 + 8])
+    compressed_data_size, decompressed_data_size = struct.unpack('<2I',vol_file[8: 8 + 8])
     compressed_data = vol_file[0x10:]
     
     if len(compressed_data) != compressed_data_size:
