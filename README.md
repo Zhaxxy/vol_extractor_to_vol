@@ -3,7 +3,7 @@ Simple tool to extract .vol files, and pack files back to .vol (used in Shantae 
 
 # usage
 ```
-usage: main.py [-h] [-p] input_file output_file
+usage: vol_extractor_to_vol.py [-h] [-p] input_file output_file
 
 Simple tool to extract .vol files, and pack files back to .vol (used in Shantae and the Pirate's Curse)
 
