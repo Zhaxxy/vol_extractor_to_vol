@@ -42,7 +42,7 @@ def main(args=None):
     if args.pack_to_vol:
         new_data = to_vol(data)
     else:
-        extract_vol(data)
+        new_data = extract_vol(data)
     
     with open(args.output_file,'wb') as f:
         f.write(new_data)
