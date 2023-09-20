@@ -23,7 +23,7 @@ def extract_vol(vol_file: bytes) -> bytes:
 
 
 def to_vol(normal_file: bytes) -> bytes:
-    compressed_data = zlib.compress(normal_file,wbits=-15)
+    compressed_data = zlib.compress(normal_file,level=9,wbits=-15)
     return VOL_HEADER + struct.pack('<2I',len(compressed_data),len(normal_file)) + compressed_data
 
 def main(args=None):
