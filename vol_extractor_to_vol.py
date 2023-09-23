@@ -47,7 +47,7 @@ def main(args=None):
     parser.add_argument('input_file',help='Input file to ethier extract or pack')
     parser.add_argument('output_file',help='Output file of new .vol file or file from .vol')
     
-    parser.add_argument('-p', '--pack_to_vol', help='The path to the nvft file, to patch in new offsets', nargs='?', type = str, const=False)
+    parser.add_argument('-p', '--pack_to_vol', help='The path to the nvft file, to patch in new offsets, if packing back into vol', nargs='?', type = str, const=False)
     
     args = parser.parse_args()
 
