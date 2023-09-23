@@ -14,5 +14,5 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -p [PACK_TO_VOL], --pack_to_vol [PACK_TO_VOL]
-                        The path to the nvft file, to patch in new offsets
+                        The path to the nvft file, to patch in new offsets, if packing back into vol
 ```
