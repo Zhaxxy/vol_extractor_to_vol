@@ -16,3 +16,12 @@ options:
   -p [PACK_TO_VOL], --pack_to_vol [PACK_TO_VOL]
                         The path to the nvft file, to patch in new offsets and lengths, if packing back into vol
 ```
+## example extracting .vol
+```
+python vol_extractor_to_vol.py app\Resource\SCENE_INTRO_BOSS.vol stuff
+```
+
+## example packing back to .vol
+```
+python vol_extractor_to_vol.py stuff\SCENE_INTRO_BOSS app\Resource\SCENE_INTRO_BOSS.vol -p app\nvft
+```
