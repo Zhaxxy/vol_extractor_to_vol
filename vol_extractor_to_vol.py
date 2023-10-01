@@ -275,9 +275,9 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
         file_links.append(VolumeFileLink(some_hash_function(file.name.lower().encode('ascii')),vol_write_read_plus.tell(),len(file_data)))
         vol_write_read_plus.write(file_data)
         
-      # if not index == len(files)-1: # for whatever reason, the last file is not padded, yes this makes the entire file not be in a 32 bytes bound, no clue why
-      #    if pad_amnt := f.tell() % 32:
-      #        f.write(b'\x00' * (32 - pad_amnt))
+        if pad_amnt := vol_write_read_plus.tell() % 32:
+            vol_write_read_plus.write(b'\x00' * (32 - pad_amnt))
+
     decompressed_data_size = vol_write_read_plus.tell()
     
     vol_write_read_plus.seek(len(header))
