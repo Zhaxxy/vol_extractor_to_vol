@@ -289,12 +289,25 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
 
 
 def vol2files(input_vol: Path, output_folder: Path):
+    """
+    Extract a .vol file into files to ther output_folder
+    
+    :param Path input_vol: The path to the input vol file, eg Path('app\Resource\SCENE_INTRO_BOSS.vol')
+    :param Path output_folder: The path where to extract the files to, eg Path('stuff\SCENE_INTRO_BOSS')
+    """
     with open(input_vol,'rb') as f:
         data = BytesIO(decompress_vol(f.read()))
     
     extract_decompressed_vol(data,output_folder)
 
 def files2vol(input_folder: Path, output_file: Path, nvft_file: Path):
+    """
+    Pack loose files back into a .vol file, alongise patching the nvft file with the new decompressed size and compressed size
+    
+    :param Path input_vol: The path to the input folder with loose files, eg Path('stuff\SCENE_INTRO_BOSS.vol')
+    :param Path output_folder: The path to the output .vol file, eg Path('app\Resource\SCENE_INTRO_BOSS.vol')
+    :param Path nvft_file: The path to the nvft file, which needs to be patched for this to work, eg Path('app\nvft')
+    """
     open(output_file,'w').close()
     with open(output_file,'rb+') as f:
         pack_to_decompressed_vol(f,input_folder)
