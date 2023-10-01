@@ -130,6 +130,9 @@ def compress_vol(normal_file: bytes, temp_patch_nvft: str = None) -> bytes:
 
 
 class VolumeFileLink(NamedTuple):
+    """
+    a file link or entry in the vol file, it is 0x18 bytes long and contains a hash of the filename, the absoulte offset of the file data in the volume and the file data size
+    """
     filename_hash: int
     #unknown_number: int
     file_data_start: int
@@ -155,24 +158,26 @@ class VolumeFileLink(NamedTuple):
             return tuple(self) == tuple(other)
 
 
-def build_vol_header(datablocks_offset,decompressed_data_size: int, filenames_hashes: Sequence[int]) -> bytes | int:
+def build_vol_header(datablocks_offset: int,decompressed_data_size: int, filenames_hashes: Sequence[int]) -> bytes | int:
     """
-    buckets = list(range(0,len(filenames_hashes)+1,5))
-    if len(buckets) < 2:
-        buckets = [0,len(filenames_hashes)]
-    
-    
-    if len(buckets) > 2 and not len(buckets) % 2:
-        buckets.pop(2)
-    
-    for index,_ in enumerate(buckets):
-        if index == 0:
-            continue
-        buckets[index] -= 1
-    
-    buckets[-1] = len(filenames_hashes)
-    buckets_size = len(buckets).bit_length() - 1
+    build the header and buckets for the voluem, the second return value is the buckets_size, which is used to calculuate the hash jump
     """
+    # buckets = list(range(0,len(filenames_hashes)+1,5))
+    # if len(buckets) < 2:
+        # buckets = [0,len(filenames_hashes)]
+    
+    
+    # if len(buckets) > 2 and not len(buckets) % 2:
+        # buckets.pop(2)
+    
+    # for index,_ in enumerate(buckets):
+        # if index == 0:
+            # continue
+        # buckets[index] -= 1
+    
+    # buckets[-1] = len(filenames_hashes)
+    # buckets_size = len(buckets).bit_length() - 1
+
     buckets = [0,len(filenames_hashes)] # lol no hashmap for u
     buckets_size = 0
 
@@ -210,6 +215,9 @@ def build_vol_header(datablocks_offset,decompressed_data_size: int, filenames_ha
     return vol_header, buckets_size
 
 def read_header(vol: BytesIO) -> tuple[int,int,int.int]:
+    """
+    reads out the required information about the header and seeks the vol to the start of the file links
+    """
     vol.seek(0xc)
     file_count = decode_num(vol.read(4))
     filelinks_offset = decode_num(vol.read(4)) # offset 0x10
