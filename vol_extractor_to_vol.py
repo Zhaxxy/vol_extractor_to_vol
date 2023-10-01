@@ -249,8 +249,9 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
     files = [file for file in Path(output_folder).iterdir() if file.is_file()]
     
     header,buckets_size = build_vol_header(0,0,{some_hash_function(filename.name.lower().encode('ascii')) for filename in files})
-    files.sort(key = lambda filename: some_hash_function(filename.name.lower().encode('ascii')) % (1 << buckets_size))
-
+    #files.sort(key = lambda filename: some_hash_function(filename.name.lower().encode('ascii')) % (1 << buckets_size))
+    files.sort(key = lambda filename: some_hash_function(filename.name.lower().encode('ascii')))
+    
     vol_write_read_plus.write(header)
 
     for file in files:
