@@ -1,6 +1,9 @@
 # vol_extractor_to_vol
 Simple tool to extract .vol files, and pack files back to .vol (used in Shantae and the Pirate's Curse)
 
+# TODO
+[] implement proper hashmap buckets
+
 # usage
 ```
 usage: vol_extractor_to_vol.py [-h] [-p [PACK_TO_VOL]] input_file [output_file]
