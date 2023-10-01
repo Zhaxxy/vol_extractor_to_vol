@@ -8,15 +8,12 @@ from io import BytesIO
 from pathlib import Path
 import logging
 import argparse
- 
- 
 
 VOL_HEADER = b'P\xf0w\xd1\x01\x01\x00\x00'
 
 with open(Path(Path(__file__).parent,'nvft_offsets_ps4.json')) as f:
     NVFT_OFFSETS = json.load(f) 
- 
- 
+
 
 def decode_num(number: bytes, /) -> int:
     return struct.unpack('<I',number)[0]
@@ -226,18 +223,6 @@ def read_header(vol: BytesIO) -> tuple[int,int,int.int]:
     vol.seek(filelinks_offset)
     
     return file_count,filelinks_offset,datablocks_offset,decompressed_data_size
-
-
-"""
-with open('SCENE_INTRO_BOSS.bin','rb+') as f:
-    file_count,filelinks_offset,datablocks_offset,decompressed_data_size = read_header(vol)
-    
-    for _ in range(file_count):
-        file_link = VolumeFileLink.from_bytes(f.read(0x18))
-        
-        f.seek(-0x18,1)
-        f.write(bytes(file_link))
-"""
 
 
 def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
