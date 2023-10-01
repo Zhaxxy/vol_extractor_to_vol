@@ -313,7 +313,6 @@ def main(args=None):
     if args.pack_to_vol:
         if args.output_file == 1:
             args.output_file = Path(os.getcwd(),Path(Path(args.input_file).name).with_suffix('.vol'))
-        print(args.output_file)
         files2vol(args.input_file,args.output_file,args.pack_to_vol)
     else:
         if args.output_file == 1:
