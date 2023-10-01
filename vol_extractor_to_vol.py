@@ -275,7 +275,7 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
         file_links.append(VolumeFileLink(some_hash_function(file.name.lower().encode('ascii')),vol_write_read_plus.tell(),len(file_data)))
         vol_write_read_plus.write(file_data)
         
-        if not index == len(files)-1 and len(files) < 1:
+        if not index == len(files)-1 or len(files) == 1:
             if pad_amnt := vol_write_read_plus.tell() % 32:
                 vol_write_read_plus.write(b'\x00' * (32 - pad_amnt))
 
