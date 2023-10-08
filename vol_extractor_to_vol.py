@@ -21,7 +21,7 @@ def decode_num(number: bytes, /) -> int:
 def uint32(value: int, /) -> int:
     return value & 0xFFFFFFFF
 
-def some_hash_function(raw_data: bytes, /) -> int:
+def scurse_hash(raw_data: bytes, /) -> int:
     """
     thx to https://github.com/algmyr/ alot for helping making this function
     if you can recongise the hash aloghorthim and have a better python implemention let me know!, 
@@ -240,7 +240,7 @@ def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
     filenames = [filename.decode('ascii') for filename in vol.read((datablocks_offset) - vol.tell()).split(b'\x00') if filename]
 
     for file_link,filename in zip(file_links,filenames):
-        assert file_link.filename_hash == some_hash_function(filename.lower().encode('ascii'))
+        assert file_link.filename_hash == scurse_hash(filename.lower().encode('ascii'))
         vol.seek(file_link.file_data_start)
         with open(Path(output_folder, filename),'wb') as f:
             f.write(vol.read(file_link.file_data_size))
@@ -248,9 +248,9 @@ def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
 def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
     files = [file for file in Path(output_folder).iterdir() if file.is_file()]
     
-    header,buckets_size = build_vol_header(0,0,{some_hash_function(filename.name.lower().encode('ascii')) for filename in files})
-    #files.sort(key = lambda filename: some_hash_function(filename.name.lower().encode('ascii')) % (1 << buckets_size))
-    files.sort(key = lambda filename: some_hash_function(filename.name.lower().encode('ascii')))
+    header,buckets_size = build_vol_header(0,0,{scurse_hash(filename.name.lower().encode('ascii')) for filename in files})
+    #files.sort(key = lambda filename: scurse_hash(filename.name.lower().encode('ascii')) % (1 << buckets_size))
+    files.sort(key = lambda filename: scurse_hash(filename.name.lower().encode('ascii')))
     
     vol_write_read_plus.write(header)
 
@@ -273,7 +273,7 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
     
     for index, file in enumerate(files):
         file_data = file.read_bytes()
-        file_links.append(VolumeFileLink(some_hash_function(file.name.lower().encode('ascii')),vol_write_read_plus.tell(),len(file_data)))
+        file_links.append(VolumeFileLink(scurse_hash(file.name.lower().encode('ascii')),vol_write_read_plus.tell(),len(file_data)))
         vol_write_read_plus.write(file_data)
         
         if not index == len(files)-1 or len(files) == 1:
@@ -287,7 +287,7 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
         vol_write_read_plus.write(bytes(file_link))
 
     vol_write_read_plus.seek(0)
-    vol_write_read_plus.write(build_vol_header(datablocks_offset,decompressed_data_size,{some_hash_function(filename.name.lower().encode('ascii')) for filename in files})[0])
+    vol_write_read_plus.write(build_vol_header(datablocks_offset,decompressed_data_size,{scurse_hash(filename.name.lower().encode('ascii')) for filename in files})[0])
 
 
 def vol2files(input_vol: Path, output_folder: Path):
