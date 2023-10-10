@@ -232,18 +232,22 @@ def read_header(vol: BytesIO) -> tuple[int,int,int.int]:
     
     return file_count,filelinks_offset,datablocks_offset,decompressed_data_size
 
+def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: VolumeFileLink, filename: str):
+    assert file_link.filename_hash == scurse_hash(filename.casefold().encode('ascii'))
+    vol.seek(file_link.file_data_start)
+    Path(output_folder, filename).write_bytes(vol.read(file_link.file_data_size))
+
+
+def get_file_links(decompressed_vol: bytes) -> tuple[tuple[VolumeFileLink],tuple[str]]:
+    file_count,filelinks_offset,datablocks_offset,decompressed_data_size = read_header(decompressed_vol)
+    return (
+            tuple(VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)), 
+            tuple(filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename)
+           )
 
 def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
-    file_count,filelinks_offset,datablocks_offset,decompressed_data_size = read_header(vol)
-    
-    file_links = [VolumeFileLink.from_bytes(vol.read(0x18)) for _ in range(file_count)]
-    filenames = [filename.decode('ascii') for filename in vol.read((datablocks_offset) - vol.tell()).split(b'\x00') if filename]
-
-    for file_link,filename in zip(file_links,filenames):
-        assert file_link.filename_hash == scurse_hash(filename.casefold().encode('ascii'))
-        vol.seek(file_link.file_data_start)
-        with open(Path(output_folder, filename),'wb') as f:
-            f.write(vol.read(file_link.file_data_size))
+    for file_link,filename in zip(*get_file_links(vol)):
+        extract_file_vol_decompressed(vol,output_folder,file_link,filename)
 
 def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
     files = [file for file in Path(output_folder).iterdir() if file.is_file()]
