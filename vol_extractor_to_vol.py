@@ -238,7 +238,7 @@ def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: 
     Path(output_folder, filename).write_bytes(vol.read(file_link.file_data_size))
 
 
-def get_file_links(decompressed_vol: bytes) -> tuple[tuple[VolumeFileLink],tuple[str]]:
+def get_file_links(decompressed_vol: BytesIO) -> tuple[tuple[VolumeFileLink],tuple[str]]:
     file_count,filelinks_offset,datablocks_offset,decompressed_data_size = read_header(decompressed_vol)
     return (
             tuple(VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)), 
