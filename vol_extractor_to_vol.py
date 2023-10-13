@@ -232,10 +232,12 @@ def read_header(vol: BytesIO) -> tuple[int,int,int.int]:
     
     return file_count,filelinks_offset,datablocks_offset,decompressed_data_size
 
-def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: VolumeFileLink, filename: str):
+def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: VolumeFileLink, filename: str, filename_ouput: str = None):
+    if filename_ouput is None:
+        filename_ouput = filename
     assert file_link.filename_hash == scurse_hash(filename.casefold().encode('ascii'))
     vol.seek(file_link.file_data_start)
-    Path(output_folder, filename).write_bytes(vol.read(file_link.file_data_size))
+    Path(output_folder, filename_ouput).write_bytes(vol.read(file_link.file_data_size))
 
 
 def get_file_links(decompressed_vol: BytesIO) -> tuple[tuple[VolumeFileLink],tuple[str]]:
