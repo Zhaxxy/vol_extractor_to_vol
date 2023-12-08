@@ -15,11 +15,9 @@ with open(Path(Path(__file__).parent,'nvft_offsets_ps4.json')) as f:
     NVFT_OFFSETS = json.load(f) 
 
 
-def decode_num(number: bytes, /) -> int:
+def _decode_num(number: bytes, /) -> int:
     return struct.unpack('<I',number)[0]
 
-def uint32(value: int, /) -> int:
-    return value & 0xFFFFFFFF
 
 def scurse_hash(raw_data: bytes, /) -> int:
     """
@@ -27,73 +25,72 @@ def scurse_hash(raw_data: bytes, /) -> int:
     if you can recongise the hash aloghorthim and have a better python implemention let me know!, 
     its likley to be part of jenkins hash functions https://en.wikipedia.org/wiki/Jenkins_hash_function
     """
-    byte_length = uint32(len(raw_data))
+    byte_length = (len(raw_data)) & 0xFFFFFFFF
 
-    golden_ratio1 = uint32(0x9E3779B9)
-    uVar4 = uint32(0x9E3779B9)
-    uVar6 = uint32(0)
-    uVar7 = uint32(byte_length)
+    golden_ratio1 = (0x9E3779B9) & 0xFFFFFFFF
+    uVar4 = (0x9E3779B9) & 0xFFFFFFFF
+    uVar6 = (0) & 0xFFFFFFFF
+    uVar7 = (byte_length) & 0xFFFFFFFF
 
     if byte_length >= 12:
         while uVar7 > 11:
             uVar7 -= 12  # 12 byte chunks
 
-            i0 = uint32(struct.unpack("<I", raw_data[:4])[0])
-            i1 = uint32(struct.unpack("<I", raw_data[4:8])[0])
-            i2 = uint32(struct.unpack("<I", raw_data[8:12])[0])
+            i0 = (struct.unpack("<I", raw_data[:4])[0]) & 0xFFFFFFFF
+            i1 = (struct.unpack("<I", raw_data[4:8])[0]) & 0xFFFFFFFF
+            i2 = (struct.unpack("<I", raw_data[8:12])[0]) & 0xFFFFFFFF
 
             raw_data = raw_data[12:]
 
-            uVar6 = uint32(i2 + uVar6)
+            uVar6 = (i2 + uVar6) & 0xFFFFFFFF
 
-            uVar4 = uint32(uVar6 >> 13 ^ ((i0 + uVar4) - (i1 + golden_ratio1)) - uVar6)
-            golden_ratio1 = uint32(uVar4 << 8 ^ ((i1 + golden_ratio1) - uVar6) - uVar4)
-            uVar5 = uint32(golden_ratio1 >> 13 ^ (uVar6 - uVar4) - golden_ratio1)
-            uVar4 = uint32(uVar5 >> 12 ^ (uVar4 - golden_ratio1) - uVar5)
-            uVar6 = uint32(uVar4 << 16 ^ (golden_ratio1 - uVar5) - uVar4)
-            uVar5 = uint32(uVar6 >> 5 ^ (uVar5 - uVar4) - uVar6)
-            uVar4 = uint32(uVar5 >> 3 ^ (uVar4 - uVar6) - uVar5)
-            golden_ratio1 = uint32(uVar4 << 10 ^ (uVar6 - uVar5) - uVar4)
-            uVar6 = uint32(golden_ratio1 >> 15 ^ (uVar5 - uVar4) - golden_ratio1)
+            uVar4 = (uVar6 >> 13 ^ ((i0 + uVar4) - (i1 + golden_ratio1)) - uVar6) & 0xFFFFFFFF
+            golden_ratio1 = (uVar4 << 8 ^ ((i1 + golden_ratio1) - uVar6) - uVar4) & 0xFFFFFFFF
+            uVar5 = (golden_ratio1 >> 13 ^ (uVar6 - uVar4) - golden_ratio1) & 0xFFFFFFFF
+            uVar4 = (uVar5 >> 12 ^ (uVar4 - golden_ratio1) - uVar5) & 0xFFFFFFFF
+            uVar6 = (uVar4 << 16 ^ (golden_ratio1 - uVar5) - uVar4) & 0xFFFFFFFF
+            uVar5 = (uVar6 >> 5 ^ (uVar5 - uVar4) - uVar6) & 0xFFFFFFFF
+            uVar4 = (uVar5 >> 3 ^ (uVar4 - uVar6) - uVar5) & 0xFFFFFFFF
+            golden_ratio1 = (uVar4 << 10 ^ (uVar6 - uVar5) - uVar4) & 0xFFFFFFFF
+            uVar6 = (golden_ratio1 >> 15 ^ (uVar5 - uVar4) - golden_ratio1) & 0xFFFFFFFF
 
-        uVar7 = uint32((byte_length - 12) % 12)
+        uVar7 = ((byte_length - 12) % 12) & 0xFFFFFFFF
 
-    uVar6 = uint32(byte_length + uVar6)
+    uVar6 = (byte_length + uVar6) & 0xFFFFFFFF
 
     if uVar7 == 11:
-        uVar6 = uint32(raw_data[10] * 0x1000000 + uVar6)
+        uVar6 = (raw_data[10] * 0x1000000 + uVar6) & 0xFFFFFFFF
     if uVar7 >= 10:
-        uVar6 = uint32(raw_data[9] * 0x10000 + uVar6)
+        uVar6 = (raw_data[9] * 0x10000 + uVar6) & 0xFFFFFFFF
     if uVar7 >= 9:
-        uVar6 = uint32(raw_data[8] * 0x100 + uVar6)
+        uVar6 = (raw_data[8] * 0x100 + uVar6) & 0xFFFFFFFF
     if uVar7 >= 8:
-        golden_ratio1 = uint32(golden_ratio1 + raw_data[7] * 0x1000000)
+        golden_ratio1 = (golden_ratio1 + raw_data[7] * 0x1000000) & 0xFFFFFFFF
     if uVar7 >= 7:
-        golden_ratio1 = uint32(golden_ratio1 + raw_data[6] * 0x10000)
+        golden_ratio1 = (golden_ratio1 + raw_data[6] * 0x10000) & 0xFFFFFFFF
     if uVar7 >= 6:
-        golden_ratio1 = uint32(golden_ratio1 + raw_data[5] * 0x100)
+        golden_ratio1 = (golden_ratio1 + raw_data[5] * 0x100) & 0xFFFFFFFF
     if uVar7 >= 5:
-        golden_ratio1 = uint32(golden_ratio1 + raw_data[4])
+        golden_ratio1 = (golden_ratio1 + raw_data[4]) & 0xFFFFFFFF
     if uVar7 >= 4:
-        uVar4 = uint32(uVar4 + raw_data[3] * 0x1000000)
+        uVar4 = (uVar4 + raw_data[3] * 0x1000000) & 0xFFFFFFFF
     if uVar7 >= 3:
-        uVar4 = uint32(uVar4 + raw_data[2] * 0x10000)
+        uVar4 = (uVar4 + raw_data[2] * 0x10000) & 0xFFFFFFFF
     if uVar7 >= 2:
-        uVar4 = uint32(uVar4 + raw_data[1] * 0x100)
+        uVar4 = (uVar4 + raw_data[1] * 0x100) & 0xFFFFFFFF
     if uVar7 >= 1:
-        uVar4 = uint32(uVar4 + raw_data[0])
+        uVar4 = (uVar4 + raw_data[0]) & 0xFFFFFFFF
 
-    uVar4 = uint32(uVar6 >> 13 ^ (uVar4 - golden_ratio1) - uVar6)
-    golden_ratio1 = uint32(uVar4 << 8 ^ (golden_ratio1 - uVar6) - uVar4)
-    uVar6 = uint32((golden_ratio1) >> 13 ^ ((uVar6) - (uVar4)) - (golden_ratio1))
-    uVar5 = uint32(uVar6 >> 12 ^ (uVar4 - golden_ratio1) - uVar6)
-    golden_ratio1 = uint32(uVar5 << 16 ^ (golden_ratio1 - uVar6) - uVar5)
-    uVar4 = uint32(golden_ratio1 >> 5 ^ (uVar6 - uVar5) - golden_ratio1)
-    uVar6 = uint32(uVar4 >> 3 ^ (uVar5 - golden_ratio1) - uVar4)
-    golden_ratio1 = uint32(uVar6 << 10 ^ (golden_ratio1 - uVar4) - uVar6)
+    uVar4 = (uVar6 >> 13 ^ (uVar4 - golden_ratio1) - uVar6) & 0xFFFFFFFF
+    golden_ratio1 = (uVar4 << 8 ^ (golden_ratio1 - uVar6) - uVar4) & 0xFFFFFFFF
+    uVar6 = ((golden_ratio1) >> 13 ^ ((uVar6) - (uVar4)) - (golden_ratio1)) & 0xFFFFFFFF
+    uVar5 = (uVar6 >> 12 ^ (uVar4 - golden_ratio1) - uVar6) & 0xFFFFFFFF
+    golden_ratio1 = (uVar5 << 16 ^ (golden_ratio1 - uVar6) - uVar5) & 0xFFFFFFFF
+    uVar4 = (golden_ratio1 >> 5 ^ (uVar6 - uVar5) - golden_ratio1) & 0xFFFFFFFF
+    uVar6 = (uVar4 >> 3 ^ (uVar5 - golden_ratio1) - uVar4) & 0xFFFFFFFF
+    golden_ratio1 = (uVar6 << 10 ^ (golden_ratio1 - uVar4) - uVar6) & 0xFFFFFFFF
 
-    result = uint32(golden_ratio1 >> 15 ^ (uVar4 - uVar6) - golden_ratio1)
-    return result
+    return (golden_ratio1 >> 15 ^ (uVar4 - uVar6) - golden_ratio1) & 0xFFFFFFFF
 
 
 def decompress_vol(vol_file: bytes) -> bytes:
@@ -158,7 +155,7 @@ class VolumeFileLink(NamedTuple):
             return tuple(self) == tuple(other)
 
 
-def build_vol_header(datablocks_offset: int,decompressed_data_size: int, filenames_hashes: Sequence[int]) -> bytes | int:
+def _build_vol_header(datablocks_offset: int,decompressed_data_size: int, filenames_hashes: Sequence[int]) -> bytes | int:
     """
     build the header and buckets for the voluem, the second return value is the buckets_size, which is used to calculuate the hash jump
     """
@@ -214,35 +211,33 @@ def build_vol_header(datablocks_offset: int,decompressed_data_size: int, filenam
     
     return vol_header, buckets_size
 
-def read_header(vol: BytesIO) -> tuple[int,int,int.int]:
+def _read_header(vol: BytesIO) -> tuple[int,int,int.int]:
     """
     reads out the required information about the header and seeks the vol to the start of the file links
     """
     vol.seek(0xc)
-    file_count = decode_num(vol.read(4))
-    filelinks_offset = decode_num(vol.read(4)) # offset 0x10
+    file_count = _decode_num(vol.read(4))
+    filelinks_offset = _decode_num(vol.read(4)) # offset 0x10
     
     vol.seek(0x14)
-    datablocks_offset = decode_num(vol.read(4))    
+    datablocks_offset = _decode_num(vol.read(4))    
     
     vol.seek(0x18)
-    decompressed_data_size = decode_num(vol.read(4))
+    decompressed_data_size = _decode_num(vol.read(4))
     
     vol.seek(0)
     
     return file_count,filelinks_offset,datablocks_offset,decompressed_data_size
 
-def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: VolumeFileLink, filename: str, filename_ouput: str | None = None):
-    if filename_ouput is None:
-        filename_ouput = filename
+def extract_file_vol_decompressed(vol: BytesIO, file_link: VolumeFileLink, filename: str) -> bytes:
     if file_link.filename_hash != scurse_hash(filename.casefold().encode('ascii')):
         raise ValueError('filename does not match the filename hash wrong filelink?')
     vol.seek(file_link.file_data_start)
-    Path(output_folder, filename_ouput).write_bytes(vol.read(file_link.file_data_size))
+    return vol.read(file_link.file_data_size)
 
 
 def get_file_links(decompressed_vol: BytesIO) -> dict[str,VolumeFileLink]:
-    file_count,filelinks_offset,datablocks_offset,_ = read_header(decompressed_vol)
+    file_count,filelinks_offset,datablocks_offset,_ = _read_header(decompressed_vol)
     decompressed_vol.seek(filelinks_offset)
     
     filelinks = [VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)]
@@ -254,32 +249,33 @@ def get_file_links(decompressed_vol: BytesIO) -> dict[str,VolumeFileLink]:
         if filelink.filename_hash != scurse_hash(filename.casefold().encode('ascii')):
             raise ValueError(f'{filename = } does not match hash of {filelink = } bad vol?')
     
-    decompressed_vol.seek(0)
+    # decompressed_vol.seek(0)
     return result
 
-def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
-    for filename,file_link in get_file_links(vol).items():
-        extract_file_vol_decompressed(vol,output_folder,file_link,filename)
+def extract_decompressed_vol(decompressed_vol: BytesIO, output_folder: Path):
+    for filename,file_link in get_file_links(decompressed_vol).items():
+        file = extract_file_vol_decompressed(decompressed_vol,file_link,filename)
+        Path(output_folder, filename).write_bytes(file)
 
-def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
+def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, output_folder: Path):
     files = [file for file in Path(output_folder).iterdir() if file.is_file()]
     
-    header,buckets_size = build_vol_header(0,0,{scurse_hash(filename.name.casefold().encode('ascii')) for filename in files})
+    header,buckets_size = _build_vol_header(0,0,{scurse_hash(filename.name.casefold().encode('ascii')) for filename in files})
     #files.sort(key = lambda filename: scurse_hash(filename.name.casefold().encode('ascii')) % (1 << buckets_size))
     files.sort(key = lambda filename: scurse_hash(filename.name.casefold().encode('ascii')))
     
-    vol_write_read_plus.write(header)
+    vol_write_read_plus_output.write(header)
 
     for file in files:
-        vol_write_read_plus.write(bytes(VolumeFileLink(0,0,0)))
+        vol_write_read_plus_output.write(bytes(VolumeFileLink(0,0,0)))
 
     for file in files:
-        vol_write_read_plus.write(file.name.encode('ascii') + b'\x00')
+        vol_write_read_plus_output.write(file.name.encode('ascii') + b'\x00')
     
-    datablocks_offset = vol_write_read_plus.tell()
+    datablocks_offset = vol_write_read_plus_output.tell()
     
-    if pad_amnt := vol_write_read_plus.tell() % 32:
-        vol_write_read_plus.write(b'\x00' * (32 - pad_amnt))
+    if pad_amnt := vol_write_read_plus_output.tell() % 32:
+        vol_write_read_plus_output.write(b'\x00' * (32 - pad_amnt))
     
     file_links = []
 
@@ -289,21 +285,21 @@ def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
     
     for index, file in enumerate(files):
         file_data = file.read_bytes()
-        file_links.append(VolumeFileLink(scurse_hash(file.name.casefold().encode('ascii')),vol_write_read_plus.tell(),len(file_data)))
-        vol_write_read_plus.write(file_data)
+        file_links.append(VolumeFileLink(scurse_hash(file.name.casefold().encode('ascii')),vol_write_read_plus_output.tell(),len(file_data)))
+        vol_write_read_plus_output.write(file_data)
         
         if not index == len(files)-1 or len(files) == 1:
-            if pad_amnt := vol_write_read_plus.tell() % 32:
-                vol_write_read_plus.write(b'\x00' * (32 - pad_amnt))
+            if pad_amnt := vol_write_read_plus_output.tell() % 32:
+                vol_write_read_plus_output.write(b'\x00' * (32 - pad_amnt))
 
-    decompressed_data_size = vol_write_read_plus.tell()
+    decompressed_data_size = vol_write_read_plus_output.tell()
     
-    vol_write_read_plus.seek(len(header))
+    vol_write_read_plus_output.seek(len(header))
     for file_link in file_links:
-        vol_write_read_plus.write(bytes(file_link))
+        vol_write_read_plus_output.write(bytes(file_link))
 
-    vol_write_read_plus.seek(0)
-    vol_write_read_plus.write(build_vol_header(datablocks_offset,decompressed_data_size,{scurse_hash(filename.name.casefold().encode('ascii')) for filename in files})[0])
+    vol_write_read_plus_output.seek(0)
+    vol_write_read_plus_output.write(_build_vol_header(datablocks_offset,decompressed_data_size,{scurse_hash(filename.name.casefold().encode('ascii')) for filename in files})[0])
 
 
 def vol2files(input_vol: Path, output_folder: Path):
