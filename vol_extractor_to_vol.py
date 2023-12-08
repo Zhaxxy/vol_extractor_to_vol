@@ -241,16 +241,16 @@ def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: 
     Path(output_folder, filename_ouput).write_bytes(vol.read(file_link.file_data_size))
 
 
-def get_file_links(decompressed_vol: BytesIO) -> list[tuple[VolumeFileLink,str]]:
+def get_file_links(decompressed_vol: BytesIO) -> dict[str,VolumeFileLink]:
     file_count,filelinks_offset,datablocks_offset,_ = read_header(decompressed_vol)
     decompressed_vol.seek(filelinks_offset)
     
     filelinks = [VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)]
     filenames = [filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename]
     
-    result = list(zip(filelinks, filenames,strict=True))
+    result = dict(zip(filenames, filelinks,strict=True))
     
-    for filelink,filename in result:
+    for filename,filelink in result.items():
         if filelink.filename_hash != scurse_hash(filename.casefold().encode('ascii')):
             raise ValueError(f'{filename = } does not match hash of {filelink = } bad vol?')
     
@@ -258,7 +258,7 @@ def get_file_links(decompressed_vol: BytesIO) -> list[tuple[VolumeFileLink,str]]
     return result
 
 def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
-    for file_link,filename in get_file_links(vol):
+    for filename,file_link in get_file_links(vol).items():
         extract_file_vol_decompressed(vol,output_folder,file_link,filename)
 
 def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
