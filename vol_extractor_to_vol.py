@@ -194,18 +194,18 @@ def build_vol_header(datablocks_offset: int,decompressed_data_size: int, filenam
     if pad_amnt := len(packed_buckets) % 4:
         packed_buckets += b'\x00' * (4 - pad_amnt)
     
-    vol_header = bytearray(b'\x00\xC0\xE6\x9E\x00\x00' +
+    vol_header = (b'\x00\xC0\xE6\x9E\x00\x00' +
                     struct.pack('B',buckets_size) + 
                     b'\x00\x1C\x00\x00\x00' + 
                     struct.pack("<I", len(filenames_hashes)) + 
-                    b'\x00\x00\x00\x00' + 
+                    struct.pack('<I', (6 + 1 + 5 + 4 + 4 + 4 + 4) + len(packed_buckets)) + 
                     struct.pack("<I", datablocks_offset) + 
                     struct.pack("<I", decompressed_data_size) +
                     packed_buckets
                 )
     
 
-    vol_header[16:16+4] = struct.pack('<I',len(vol_header))
+    # vol_header[16:16+4] = struct.pack('<I',len(vol_header))
     
     logging.debug(str(vol_header.hex(' ')))
     logging.debug(str(len(vol_header)))
@@ -228,27 +228,36 @@ def read_header(vol: BytesIO) -> tuple[int,int,int.int]:
     vol.seek(0x18)
     decompressed_data_size = decode_num(vol.read(4))
     
-    vol.seek(filelinks_offset)
+    vol.seek(0)
     
     return file_count,filelinks_offset,datablocks_offset,decompressed_data_size
 
-def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: VolumeFileLink, filename: str, filename_ouput: str = None):
+def extract_file_vol_decompressed(vol: BytesIO, output_folder: Path, file_link: VolumeFileLink, filename: str, filename_ouput: str | None = None):
     if filename_ouput is None:
         filename_ouput = filename
-    assert file_link.filename_hash == scurse_hash(filename.casefold().encode('ascii'))
+    if file_link.filename_hash != scurse_hash(filename.casefold().encode('ascii')):
+        raise ValueError('filename does not match the filename hash wrong filelink?')
     vol.seek(file_link.file_data_start)
     Path(output_folder, filename_ouput).write_bytes(vol.read(file_link.file_data_size))
 
 
-def get_file_links(decompressed_vol: BytesIO) -> tuple[tuple[VolumeFileLink],tuple[str]]:
-    file_count,filelinks_offset,datablocks_offset,decompressed_data_size = read_header(decompressed_vol)
-    return (
-            tuple(VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)), 
-            tuple(filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename)
-           )
+def get_file_links(decompressed_vol: BytesIO) -> list[tuple[VolumeFileLink,str]]:
+    file_count,filelinks_offset,datablocks_offset,_ = read_header(decompressed_vol)
+    decompressed_vol.seek(filelinks_offset)
+    
+    filenames = (filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename)
+    filelinks = (VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count))
+    result = list(zip(filelinks, filenames,strict=True))
+    
+    for filelink,filename in result:
+        if filelink.filename_hash != scurse_hash(filename.casefold().encode('ascii')):
+            raise ValueError(f'{filename = } does not match hash of {filelink = } bad vol?')
+    
+    decompressed_vol.seek(0)
+    return result
 
 def extract_decompressed_vol(vol: BytesIO, output_folder: Path):
-    for file_link,filename in zip(*get_file_links(vol)):
+    for file_link,filename in get_file_links(vol):
         extract_file_vol_decompressed(vol,output_folder,file_link,filename)
 
 def pack_to_decompressed_vol(vol_write_read_plus: BytesIO, output_folder: Path):
