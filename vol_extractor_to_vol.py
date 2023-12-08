@@ -245,8 +245,9 @@ def get_file_links(decompressed_vol: BytesIO) -> list[tuple[VolumeFileLink,str]]
     file_count,filelinks_offset,datablocks_offset,_ = read_header(decompressed_vol)
     decompressed_vol.seek(filelinks_offset)
     
-    filenames = (filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename)
-    filelinks = (VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count))
+    filelinks = [VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)]
+    filenames = [filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename]
+    
     result = list(zip(filelinks, filenames,strict=True))
     
     for filelink,filename in result:
