@@ -1,9 +1,8 @@
-from __future__ import annotations
 import struct
 import os
 import zlib
 import json
-from typing import NamedTuple, Sequence
+from typing import NamedTuple, Sequence, Protocol, ClassVar
 from io import BytesIO
 from pathlib import Path
 import logging
@@ -11,13 +10,20 @@ import argparse
 
 VOL_HEADER = b'P\xf0w\xd1\x01\x01\x00\x00'
 
-with open(Path(Path(__file__).parent,'nvft_offsets_ps4.json')) as f:
+with open(Path(__file__).parent / 'nvft_offsets_ps4.json') as f:
     NVFT_OFFSETS = json.load(f) 
 
 
 def _decode_num(number: bytes, /) -> int:
     return struct.unpack('<I',number)[0]
 
+class File(Protocol):
+    def read_bytes(self) -> bytes:
+        ...
+    
+    @property
+    def name(self) -> str:
+        ...
 
 def scurse_hash(raw_data: bytes, /) -> int:
     """
@@ -111,7 +117,7 @@ def decompress_vol(vol_file: bytes) -> bytes:
     return decompressed_data
 
 
-def compress_vol(normal_file: bytes, temp_patch_nvft: str = None) -> bytes:
+def compress_vol(normal_file: bytes, temp_patch_nvft: tuple[str,Path] = None) -> bytes:
     compressed_data = zlib.compress(normal_file,wbits=-15)
     if temp_patch_nvft:
         compressed_size_offset, decompressed_size_offfset = NVFT_OFFSETS[Path(temp_patch_nvft[0]).name]
@@ -136,28 +142,29 @@ class VolumeFileLink(NamedTuple):
     #unknown_number2: int
     #unknown_number3: int
     file_data_size: int
-    
+    LENGTH: ClassVar[int] = 0x18
+
     def __bytes__(self):
         return struct.pack('<6I',self.filename_hash,0,self.file_data_start,0,0,self.file_data_size)
     
     @classmethod
-    def from_bytes(cls, file_link_bytes: int):
-        filename_hash,_,file_data_start,_,_,file_data_size = struct.unpack('<6I',file_link_bytes)
+    def from_bytes(cls, file_link_0x18_bytes: bytes, /):
+        filename_hash,_,file_data_start,_,_,file_data_size = struct.unpack('<6I',file_link_0x18_bytes)
         return cls(filename_hash,file_data_start,file_data_size)
     
-    def __hash__(self):
-        return self.filename_hash
+    # def __hash__(self):
+    #     return self.filename_hash
     
-    def __eq__(self: 'VolumeFileLink' ,other: VolumeFileLink | int):
-        if isinstance(other,int):
-            return self.filename_hash == other
-        else:
-            return tuple(self) == tuple(other)
+    # def __eq__(self: 'VolumeFileLink' ,other: VolumeFileLink | int) -> bool:
+    #     if isinstance(other,int):
+    #         return self.filename_hash == other
+    #     else:
+    #         return tuple(self) == tuple(other)
 
 
 def _build_vol_header(datablocks_offset: int,decompressed_data_size: int, filenames_hashes: Sequence[int]) -> bytes | int:
     """
-    build the header and buckets for the voluem, the second return value is the buckets_size, which is used to calculuate the hash jump
+    build the header and buckets for the volume, the second return value is the buckets_size, which is used to calculuate the hash jump
     """
     # buckets = list(range(0,len(filenames_hashes)+1,5))
     # if len(buckets) < 2:
@@ -211,7 +218,7 @@ def _build_vol_header(datablocks_offset: int,decompressed_data_size: int, filena
     
     return vol_header, buckets_size
 
-def _read_header(vol: BytesIO) -> tuple[int,int,int.int]:
+def _read_header(vol: BytesIO) -> tuple[int,int,int,int]:
     """
     reads out the required information about the header and seeks the vol to the start of the file links
     """
@@ -237,10 +244,13 @@ def extract_file_vol_decompressed(decompressed_vol: BytesIO, file_link: VolumeFi
 
 
 def get_file_links(decompressed_vol: BytesIO) -> dict[str,VolumeFileLink]:
+    """
+    ...
+    """
     file_count,filelinks_offset,datablocks_offset,_ = _read_header(decompressed_vol)
     decompressed_vol.seek(filelinks_offset)
     
-    filelinks = [VolumeFileLink.from_bytes(decompressed_vol.read(0x18)) for _ in range(file_count)]
+    filelinks = [VolumeFileLink.from_bytes(decompressed_vol.read(VolumeFileLink.LENGTH)) for _ in range(file_count)]
     filenames = [filename.decode('ascii') for filename in decompressed_vol.read((datablocks_offset) - decompressed_vol.tell()).split(b'\x00') if filename]
     
     result = dict(zip(filenames, filelinks,strict=True))
@@ -252,22 +262,30 @@ def get_file_links(decompressed_vol: BytesIO) -> dict[str,VolumeFileLink]:
     # decompressed_vol.seek(0)
     return result
 
+
 def extract_decompressed_vol(decompressed_vol: BytesIO, output_folder: Path):
     for filename,file_link in get_file_links(decompressed_vol).items():
         file = extract_file_vol_decompressed(decompressed_vol,file_link,filename)
         Path(output_folder, filename).write_bytes(file)
 
-def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, input_folder: Path):
-    files = [file for file in Path(input_folder).iterdir() if file.is_file()]
+def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, files: list[File]):
+    """
+    Pack files into a decompressed vol file, being vol_write_read_plus_output
+
+    :param BytesIO vol_write_read_plus_output: An empty BytesIO object with read and write mode, this is where we will store the output decompressed vol
+    :param list[File] files: A list of Files, which must have a name propety which returns a string and a read_bytes method which returns bytes, so a pathlib.Path object will work, this will get packed into the vol 
+    """
+    # files = [file for file in Path(input_folder).iterdir() if file.is_file()]
     
     header,buckets_size = _build_vol_header(0,0,{scurse_hash(filename.name.casefold().encode('ascii')) for filename in files})
-    #files.sort(key = lambda filename: scurse_hash(filename.name.casefold().encode('ascii')) % (1 << buckets_size))
-    files.sort(key = lambda filename: scurse_hash(filename.name.casefold().encode('ascii')))
+    # files.sort(key = lambda file: scurse_hash(file.name.casefold().encode('ascii')) % (1 << buckets_size))
+    files.sort(key = lambda file: scurse_hash(file.name.casefold().encode('ascii')))
     
     vol_write_read_plus_output.write(header)
 
-    for file in files:
-        vol_write_read_plus_output.write(bytes(VolumeFileLink(0,0,0)))
+    # for file in files:
+    #    vol_write_read_plus_output.write(bytes(VolumeFileLink(0,0,0)))
+    vol_write_read_plus_output.write(b'\x00' * (VolumeFileLink.LENGTH * len(files)))
 
     for file in files:
         vol_write_read_plus_output.write(file.name.encode('ascii') + b'\x00')
@@ -303,7 +321,7 @@ def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, input_folder: 
 
 
 def vol2files(input_vol: Path, output_folder: Path):
-    """
+    r"""
     Extract a .vol file into files to ther output_folder
     
     :param Path input_vol: The path to the input vol file, eg Path('app\Resource\SCENE_INTRO_BOSS.vol')
@@ -315,7 +333,7 @@ def vol2files(input_vol: Path, output_folder: Path):
     extract_decompressed_vol(data,output_folder)
 
 def files2vol(input_folder: Path, output_file: Path, nvft_file: Path):
-    """
+    r"""
     Pack loose files back into a .vol file, alongise patching the nvft file with the new decompressed size and compressed size
     
     :param Path input_vol: The path to the input folder with loose files, eg Path('stuff\SCENE_INTRO_BOSS.vol')
@@ -324,7 +342,7 @@ def files2vol(input_folder: Path, output_file: Path, nvft_file: Path):
     """
     open(output_file,'w').close()
     with open(output_file,'rb+') as f:
-        pack_to_decompressed_vol(f,input_folder)
+        pack_to_decompressed_vol(f,[file for file in Path(input_folder).iterdir() if file.is_file()])
         f.seek(0)
         data = f.read()
         new_data = compress_vol(data,(Path(output_file).name,nvft_file))
