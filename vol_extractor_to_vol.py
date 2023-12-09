@@ -229,11 +229,11 @@ def _read_header(vol: BytesIO) -> tuple[int,int,int.int]:
     
     return file_count,filelinks_offset,datablocks_offset,decompressed_data_size
 
-def extract_file_vol_decompressed(vol: BytesIO, file_link: VolumeFileLink, filename: str) -> bytes:
+def extract_file_vol_decompressed(decompressed_vol: BytesIO, file_link: VolumeFileLink, filename: str) -> bytes:
     if file_link.filename_hash != scurse_hash(filename.casefold().encode('ascii')):
         raise ValueError('filename does not match the filename hash wrong filelink?')
-    vol.seek(file_link.file_data_start)
-    return vol.read(file_link.file_data_size)
+    decompressed_vol.seek(file_link.file_data_start)
+    return decompressed_vol.read(file_link.file_data_size)
 
 
 def get_file_links(decompressed_vol: BytesIO) -> dict[str,VolumeFileLink]:
