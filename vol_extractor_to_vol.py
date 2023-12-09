@@ -257,8 +257,8 @@ def extract_decompressed_vol(decompressed_vol: BytesIO, output_folder: Path):
         file = extract_file_vol_decompressed(decompressed_vol,file_link,filename)
         Path(output_folder, filename).write_bytes(file)
 
-def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, output_folder: Path):
-    files = [file for file in Path(output_folder).iterdir() if file.is_file()]
+def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, input_folder: Path):
+    files = [file for file in Path(input_folder).iterdir() if file.is_file()]
     
     header,buckets_size = _build_vol_header(0,0,{scurse_hash(filename.name.casefold().encode('ascii')) for filename in files})
     #files.sort(key = lambda filename: scurse_hash(filename.name.casefold().encode('ascii')) % (1 << buckets_size))
