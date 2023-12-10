@@ -17,13 +17,21 @@ with open(Path(__file__).parent / 'nvft_offsets_ps4.json') as f:
 def _decode_num(number: bytes, /) -> int:
     return struct.unpack('<I',number)[0]
 
-class File(Protocol):
+
+class FilePath(Protocol):
     def read_bytes(self) -> bytes:
         ...
     
     @property
     def name(self) -> str:
         ...
+
+class FileInMemory(NamedTuple):
+    name: str
+    bytes: bytes
+
+    def read_bytes(self) -> bytes:
+        return self.bytes
 
 def scurse_hash(raw_data: bytes, /) -> int:
     """
@@ -118,7 +126,11 @@ def decompress_vol(vol_file: bytes) -> bytes:
 
 
 def compress_vol(normal_file: bytes, temp_patch_nvft: tuple[str,Path] = None) -> bytes:
-    compressed_data = zlib.compress(normal_file,wbits=-15)
+    # For whatever reason, i need to set this to best compression, otherwise
+    # SCENE_LAB_IF_19.vol fucks something up and it cant read the ANIM_SaveMan.vol,
+    # very strange (yes the bytes are differnt to the og SCENE_LAB_IF_19.vol even with
+    # Z_BEST_COMPRESSION but it fixes it)
+    compressed_data = zlib.compress(normal_file,wbits=-15,level=zlib.Z_BEST_COMPRESSION)
     if temp_patch_nvft:
         compressed_size_offset, decompressed_size_offfset = NVFT_OFFSETS[Path(temp_patch_nvft[0]).name]
         
@@ -142,7 +154,6 @@ class VolumeFileLink(NamedTuple):
     #unknown_number2: int
     #unknown_number3: int
     file_data_size: int
-    LENGTH: ClassVar[int] = 0x18
 
     def __bytes__(self):
         return struct.pack('<6I',self.filename_hash,0,self.file_data_start,0,0,self.file_data_size)
@@ -152,6 +163,11 @@ class VolumeFileLink(NamedTuple):
         filename_hash,_,file_data_start,_,_,file_data_size = struct.unpack('<6I',file_link_0x18_bytes)
         return cls(filename_hash,file_data_start,file_data_size)
     
+    @classmethod
+    @property
+    def LENGTH(_) -> int:
+        return 0x18
+
     # def __hash__(self):
     #     return self.filename_hash
     
@@ -268,7 +284,7 @@ def extract_decompressed_vol(decompressed_vol: BytesIO, output_folder: Path):
         file = extract_file_vol_decompressed(decompressed_vol,file_link,filename)
         Path(output_folder, filename).write_bytes(file)
 
-def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, files: list[File]):
+def pack_to_decompressed_vol(vol_write_read_plus_output: BytesIO, files: list[FilePath]):
     """
     Pack files into a decompressed vol file, being vol_write_read_plus_output
 
